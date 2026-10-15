@@ -1,0 +1,8 @@
+§wyrlz GitHub write-action sandbox
+
+Operation: CREATE_FILE
+Repository: kaministrator999-ui/Swrlzing-core
+Branch: main
+Purpose: A harmless text-file creation test for future §wyrlz AI Chat write-action development.
+
+This file was created through the connected ChatGPT GitHub connector as a baseline transport test. It does NOT establish that the separate §wyrlz AI Chat runtime has been granted GitHub write permissions or has executed this action.
