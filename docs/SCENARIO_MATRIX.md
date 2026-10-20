@@ -8,6 +8,8 @@ Target repo: `kaministrator999-ui/Swrlzing-core`, branch `main` unless a test ex
 
 | ID | Say to §wyrlz Chat | Expected grounded outcome |
 | --- | --- | --- |
+| R00 | @GitHub readiness | Mixed-source-testbed classification grounded in this repo's verified tree; does not grant writes or claim ZIP extraction |
+| R00b | Is my GitHub repo empty? | Accurate populated status, with read-only onboarding guidance |
 | R01 | What files are in the GitHub repo? | Native hierarchical explorer, real root names, no invented `src/utils` |
 | R02 | Open the GitHub file `src/swrlz_lab/app.py` | Verified exact source; imports `.scoring` and `.formatting` |
 | R03 | Analyze the GitHub source file `src/swrlz_lab/app.py` and trace its dependencies | v288 scenario and verified app → scoring/formatting direct links, capped coverage |
