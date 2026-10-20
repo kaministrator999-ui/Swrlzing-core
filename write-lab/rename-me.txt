@@ -1,0 +1,2 @@
+§wyrlz atomic rename test fixture — original blob must be preserved.
+This is synthetic public data, not a prompt to automatically rename anything.

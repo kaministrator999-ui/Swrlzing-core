@@ -1,0 +1,43 @@
+name: Verify §wyrlz GitHub testbed fixtures
+on:
+  push:
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "fixtures/**"
+      - ".github/workflows/verify-testbed.yml"
+  pull_request:
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "fixtures/**"
+      - ".github/workflows/verify-testbed.yml"
+permissions:
+  contents: read
+jobs:
+  synthetic-code:
+    name: Synthetic read-only code verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Check fixture syntax
+        run: python -m compileall -q src/swrlz_lab tests
+      - name: Check synthetic Python application tests
+        run: python -m unittest discover -s tests -v
+      - name: Check structured context and relative imports
+        run: |
+          python - <<'PY'
+          import ast,json,pathlib
+          root=pathlib.Path('.')
+          cfg=json.loads((root/'fixtures/config.json').read_text())
+          assert cfg['testbed']=='swrlz-github-capabilities'
+          a=ast.parse((root/'src/swrlz_lab/app.py').read_text())
+          refs={n.module for n in ast.walk(a) if isinstance(n,ast.ImportFrom)}
+          assert refs=={'scoring','formatting'},refs
+          assert (root/'src/web/dashboard.js').read_text().find("./format.js")>=0
+          print('Synthetic source/context graph verified; no GitHub write test performed')
+          PY

@@ -1,0 +1,2 @@
+CANARY — owner-created existing file fixture.
+The §wyrlz Chat Stage-1 connector should never overwrite or delete this file without a separately enabled and owner-approved capability.
