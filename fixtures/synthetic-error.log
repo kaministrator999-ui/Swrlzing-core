@@ -1,0 +1,6 @@
+2026-10-20T09:00:00-05:00 TEST-ONLY Python exception
+Traceback (most recent call last):
+  File "src/swrlz_lab/known_issue.py", line 6, in average
+    return sum(values) / len(values)
+ZeroDivisionError: division by zero
+Diagnostic fixture context: average([]) produces the error. No live execution record implied.

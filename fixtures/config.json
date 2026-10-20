@@ -1,0 +1,8 @@
+{
+  "testbed": "swrlz-github-capabilities",
+  "visibility": "public-synthetic",
+  "application": "Swyrlz Testbed",
+  "bonusPoints": 4,
+  "features": {"fileRead": true, "contextFollowup": true, "changePreview": true},
+  "sampleScores": [2, 3, 5]
+}
