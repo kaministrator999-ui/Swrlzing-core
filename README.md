@@ -4,10 +4,15 @@ This public repository is a **deliberate synthetic test workspace** for the conn
 
 Start at [docs/SCENARIO_MATRIX.md](docs/SCENARIO_MATRIX.md) for copy-paste read and owner-approved write tests. Browse [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for an expected source map.
 
+See [docs/AI_CODING_ACCEPTANCE.md](docs/AI_CODING_ACCEPTANCE.md) for the browser baseline and evidence-based 700M/coder project acceptance tasks.
+
+Open [web-test/modeler.html](web-test/modeler.html) for the offline 3D cube prototype with object selection, transforms and camera controls. It is an engineer-built reference for project testing; it is not evidence that the Chat models generated a working modeler.
+
 ## Repository contents
 
 - `src/swrlz_lab/`: real, small interconnected Python source. A deliberate, documented boundary bug in `known_issue.py` is a diagnostic fixture, not a secret or production code.
 - `src/web/`: a small JavaScript ES module with an exact relative import.
+- `web-test/`: the existing counter/task/theme playground and a separate offline 3D cube reference page.
 - `tests/`: Python standard-library `unittest` tests, including expected behavior around the deliberate bug.
 - `fixtures/`: small structured JSON and a synthetic traceback for inspection.
 - `write-lab/`: harmless owner-controlled create/rename/edit test targets; existing files are never disposable unless the owner explicitly approves that action.

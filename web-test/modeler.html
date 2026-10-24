@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="An offline cube modeling workshop with a perspective view and editable object transforms.">
+  <title>§wyrlz Cube Workshop</title>
+  <style>
+    :root { color-scheme: dark; font: 16px/1.5 system-ui,sans-serif; background:#101724; color:#eef3fc; }
+    * { box-sizing:border-box; }
+    body { margin:0; }
+    main { max-width:1200px; margin:auto; padding:24px; }
+    h1 { margin:0; font-size:clamp(1.6rem,4vw,2.3rem); }
+    h2 { font-size:1rem; margin:0 0 10px; }
+    p { color:#b4c3d7; margin:6px 0 18px; }
+    .workspace { display:grid; grid-template-columns:minmax(0,1fr) 280px; gap:18px; }
+    .panel { background:#1b2638; border:1px solid #3b4b63; border-radius:12px; padding:16px; min-width:0; }
+    .toolbar { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
+    button,input { font:inherit; color:inherit; border:1px solid #61718a; border-radius:6px; background:#172233; }
+    button { padding:8px 12px; cursor:pointer; }
+    button:hover:not(:disabled) { background:#293c57; }
+    button:disabled { opacity:.5; cursor:default; }
+    button:focus-visible,input:focus-visible,canvas:focus-visible { outline:3px solid #9ed3ff; outline-offset:3px; }
+    .primary { background:#325d91; }
+    .viewport { height:clamp(340px,58vh,560px); position:relative; }
+    canvas { width:100%; height:100%; display:block; border-radius:8px; touch-action:none; cursor:grab; }
+    canvas:active { cursor:grabbing; }
+    .hint,footer { font-size:.85rem; color:#b4c3d7; }
+    .hint { margin:12px 0; }
+    #objects { display:grid; gap:6px; padding:0; margin:0 0 20px; list-style:none; }
+    #objects button { width:100%; text-align:left; }
+    #objects button[aria-pressed="true"] { border-color:#ffd18a; background:#463b2b; }
+    fieldset { border:0; padding:0; margin:0 0 16px; min-width:0; }
+    legend { font-weight:650; padding:0; margin-bottom:8px; }
+    .axes { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+    label { font-size:.85rem; display:block; }
+    input { display:block; width:100%; min-width:0; padding:7px; margin-top:4px; }
+    output { display:block; color:#c5dcf6; font-size:.9rem; }
+    footer { margin-top:18px; }
+    @media(max-width:760px) {
+      main { padding:16px; }
+      .workspace { grid-template-columns:minmax(0,1fr); }
+      .viewport { height:330px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>§wyrlz Cube Workshop</h1>
+    <p>Add a cube, select it, and shape your scene. Everything runs offline.</p>
+    <div class="workspace">
+      <section class="panel" aria-label="3D viewport">
+        <div class="toolbar">
+          <button id="add" class="primary" type="button">Add Cube</button>
+          <button id="delete" type="button">Delete Cube</button>
+          <button id="reset-view" type="button">Reset View</button>
+        </div>
+        <div class="viewport">
+          <canvas id="scene" tabindex="0" aria-label="3D cube scene" aria-describedby="view-help"></canvas>
+        </div>
+        <p id="view-help" class="hint">Click a cube to select it. Drag to orbit; scroll to zoom. With the scene focused, use arrow keys to orbit and + / − to zoom. Delete removes the selected cube.</p>
+        <div class="toolbar" aria-label="Camera controls">
+          <button id="orbit-left" type="button">Orbit Left</button>
+          <button id="orbit-right" type="button">Orbit Right</button>
+          <button id="zoom-in" type="button">Zoom In</button>
+          <button id="zoom-out" type="button">Zoom Out</button>
+        </div>
+        <output id="status" aria-live="polite"></output>
+      </section>
+      <aside class="panel" aria-label="Scene objects and transforms">
+        <h2>Scene objects</h2>
+        <ul id="objects" aria-label="Select a cube"></ul>
+        <fieldset id="position-fields">
+          <legend>Position</legend>
+          <div class="axes">
+            <label for="positionX">Position X<input id="positionX" type="number" min="-5" max="5" step="0.1" value="0"></label>
+            <label for="positionY">Position Y<input id="positionY" type="number" min="-5" max="5" step="0.1" value="0.5"></label>
+            <label for="positionZ">Position Z<input id="positionZ" type="number" min="-5" max="5" step="0.1" value="0"></label>
+          </div>
+        </fieldset>
+        <fieldset id="scale-fields">
+          <legend>Scale</legend>
+          <div class="axes">
+            <label for="scaleX">Scale X<input id="scaleX" type="number" min="0.1" max="4" step="0.1" value="1"></label>
+            <label for="scaleY">Scale Y<input id="scaleY" type="number" min="0.1" max="4" step="0.1" value="1"></label>
+            <label for="scaleZ">Scale Z<input id="scaleZ" type="number" min="0.1" max="4" step="0.1" value="1"></label>
+          </div>
+        </fieldset>
+        <p class="hint">The highlighted cube is selected. Position ranges from −5 to 5; scale from 0.1 to 4. A scene holds up to 9 cubes.</p>
+      </aside>
+    </div>
+    <footer>Offline prototype · Perspective cube geometry · No libraries · Your scene resets after refresh.</footer>
+  </main>
+  <script>
+    // Engineer-built sandbox reference; not generated model output or training evidence.
+    'use strict';
+    const canvas = document.getElementById('scene'), ctx = canvas.getContext('2d');
+    const objects = [], list = document.getElementById('objects');
+    const vertices = [[-.5,-.5,-.5],[.5,-.5,-.5],[.5,.5,-.5],[-.5,.5,-.5],[-.5,-.5,.5],[.5,-.5,.5],[.5,.5,.5],[-.5,.5,.5]];
+    const faces = [[0,1,2,3],[4,7,6,5],[0,4,5,1],[3,2,6,7],[0,3,7,4],[1,5,6,2]];
+    const spawnPoints = [[1.7,0],[-1.7,0],[0,1.7],[0,-1.7],[1.7,1.7],[-1.7,1.7],[1.7,-1.7],[-1.7,-1.7]];
+    let selectedId = null, nextId = 1, width = 1, height = 1, hitFaces = [], drag = null;
+    let yaw = .65, pitch = -.4, distance = 6;
+    const clamp = (value,min,max) => Math.min(max,Math.max(min,value));
+    const selected = () => objects.find(object => object.id === selectedId);
+    const controls = [];
+    for (const kind of ['position','scale']) for (const axis of ['X','Y','Z']) {
+      const input = document.getElementById(kind + axis), key = axis.toLowerCase();
+      controls.push({ input, kind, key });
+      input.addEventListener('input', () => {
+        const object = selected(), value = Number(input.value);
+        if (!object || input.value === '' || !Number.isFinite(value)) return;
+        object[kind][key] = clamp(value,Number(input.min),Number(input.max));
+        render();
+      });
+      input.addEventListener('change', () => {
+        const object = selected();
+        if (object) input.value = String(object[kind][key]);
+      });
+    }
+    function refreshSelection() {
+      const object = selected();
+      const restoreListFocus = list.contains(document.activeElement);
+      list.replaceChildren();
+      for (const item of objects) {
+        const li = document.createElement('li'), button = document.createElement('button');
+        button.type = 'button'; button.textContent = 'Cube ' + item.id;
+        button.setAttribute('aria-pressed',String(item.id === selectedId));
+        button.addEventListener('click', () => { selectedId = item.id; refreshSelection(); });
+        li.append(button); list.append(li);
+      }
+      document.getElementById('delete').disabled = !object;
+      document.getElementById('add').disabled = objects.length >= 9;
+      document.getElementById('position-fields').disabled = !object;
+      document.getElementById('scale-fields').disabled = !object;
+      for (const {input,kind,key} of controls) input.value = object ? String(object[kind][key]) : '';
+      document.getElementById('status').textContent = objects.length + (objects.length === 1 ? ' cube' : ' cubes') + (object ? ' · Cube ' + object.id + ' selected' : ' · No cube selected');
+      if (restoreListFocus) list.querySelector('[aria-pressed="true"]')?.focus();
+      render();
+    }
+    function addCube() {
+      if (objects.length >= 9) return;
+      const id = nextId++, point = id === 1 ? [0,0] : spawnPoints[(id - 2) % spawnPoints.length];
+      objects.push({ id, position:{x:point[0],y:.5,z:point[1]}, scale:{x:1,y:1,z:1}, hue:(205 + id * 37) % 360 });
+      selectedId = id; refreshSelection();
+    }
+    function deleteCube() {
+      const index = objects.findIndex(object => object.id === selectedId);
+      if (index < 0) return;
+      objects.splice(index,1); selectedId = objects.at(-1)?.id ?? null; refreshSelection();
+    }
+    // Rotate all three world coordinates into camera space; depth controls perspective.
+    function project(x,y,z) {
+      y -= .5;
+      const viewX = x * Math.cos(yaw) - z * Math.sin(yaw);
+      const turnedZ = x * Math.sin(yaw) + z * Math.cos(yaw);
+      const viewY = y * Math.cos(pitch) - turnedZ * Math.sin(pitch);
+      const depth = distance + y * Math.sin(pitch) + turnedZ * Math.cos(pitch);
+      if (depth < .15) return null;
+      const factor = Math.min(width,height) * .95 / depth;
+      return { x:width / 2 + viewX * factor, y:height / 2 - viewY * factor, depth };
+    }
+    function line(a,b,color) {
+      const p = project(...a), q = project(...b);
+      if (!p || !q) return;
+      ctx.strokeStyle = color; ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(q.x,q.y); ctx.stroke();
+    }
+    function render() {
+      ctx.fillStyle = '#101b2b'; ctx.fillRect(0,0,width,height);
+      ctx.lineWidth = 1;
+      for (let i = -5; i <= 5; i++) {
+        line([i,0,-5],[i,0,5],'#2b3c50'); line([-5,0,i],[5,0,i],'#2b3c50');
+      }
+      line([0,0,0],[2,0,0],'#fa8d8d'); line([0,0,0],[0,2,0],'#8ee3ac'); line([0,0,0],[0,0,2],'#8ebfff');
+      const polygons = [];
+      for (const object of objects) {
+        const points = vertices.map(v => project(object.position.x + v[0] * object.scale.x,object.position.y + v[1] * object.scale.y,object.position.z + v[2] * object.scale.z));
+        faces.forEach((indices,index) => {
+          const pointsForFace = indices.map(i => points[i]);
+          if (pointsForFace.some(point => !point)) return;
+          polygons.push({ object, points:pointsForFace, shade:35 + index * 4, depth:pointsForFace.reduce((sum,point) => sum + point.depth,0) / 4 });
+        });
+      }
+      polygons.sort((a,b) => b.depth - a.depth);
+      for (const face of polygons) {
+        ctx.beginPath(); face.points.forEach((point,index) => index ? ctx.lineTo(point.x,point.y) : ctx.moveTo(point.x,point.y)); ctx.closePath();
+        ctx.fillStyle = 'hsl(' + face.object.hue + ' 55% ' + face.shade + '%)'; ctx.fill();
+        ctx.lineWidth = face.object.id === selectedId ? 2 : 1;
+        ctx.strokeStyle = face.object.id === selectedId ? '#ffd18a' : '#b9d2e5'; ctx.stroke();
+      }
+      hitFaces = polygons;
+    }
+    function resize() {
+      const box = canvas.getBoundingClientRect(), ratio = Math.min(window.devicePixelRatio || 1,2);
+      width = Math.max(1,box.width); height = Math.max(1,box.height);
+      canvas.width = Math.round(width * ratio); canvas.height = Math.round(height * ratio);
+      ctx.setTransform(ratio,0,0,ratio,0,0); render();
+    }
+    function inside(x,y,points) {
+      let hit = false;
+      for (let i = 0,j = points.length - 1; i < points.length; j = i++) {
+        const a = points[i], b = points[j];
+        if ((a.y > y) !== (b.y > y) && x < (b.x - a.x) * (y - a.y) / (b.y - a.y) + a.x) hit = !hit;
+      }
+      return hit;
+    }
+    function orbit(dx,dy) { yaw += dx; pitch = clamp(pitch + dy,-1.2,1.2); render(); }
+    function zoom(factor) { distance = clamp(distance * factor,3,18); render(); }
+    canvas.addEventListener('pointerdown', event => {
+      if (event.button !== 0) return;
+      const box = canvas.getBoundingClientRect(), x = event.clientX - box.left, y = event.clientY - box.top;
+      const hit = [...hitFaces].reverse().find(face => inside(x,y,face.points));
+      if (hit) { selectedId = hit.object.id; refreshSelection(); }
+      canvas.focus(); drag = {x:event.clientX,y:event.clientY}; canvas.setPointerCapture(event.pointerId);
+    });
+    canvas.addEventListener('pointermove', event => {
+      if (!drag) return;
+      orbit((event.clientX - drag.x) * .01,(event.clientY - drag.y) * .01);
+      drag = {x:event.clientX,y:event.clientY};
+    });
+    for (const name of ['pointerup','pointercancel','lostpointercapture']) canvas.addEventListener(name, () => { drag = null; });
+    canvas.addEventListener('wheel', event => { event.preventDefault(); zoom(Math.exp(clamp(event.deltaY,-200,200) * .001)); },{passive:false});
+    canvas.addEventListener('keydown', event => {
+      const actions = {ArrowLeft:() => orbit(-.12,0),ArrowRight:() => orbit(.12,0),ArrowUp:() => orbit(0,-.12),ArrowDown:() => orbit(0,.12),'+':() => zoom(.9),'=':() => zoom(.9),'-':() => zoom(1.1),Delete:deleteCube};
+      if (actions[event.key]) { event.preventDefault(); actions[event.key](); }
+    });
+    document.getElementById('add').addEventListener('click',addCube);
+    document.getElementById('delete').addEventListener('click',deleteCube);
+    document.getElementById('reset-view').addEventListener('click', () => { yaw = .65; pitch = -.4; distance = 6; render(); });
+    document.getElementById('orbit-left').addEventListener('click', () => orbit(-.2,0));
+    document.getElementById('orbit-right').addEventListener('click', () => orbit(.2,0));
+    document.getElementById('zoom-in').addEventListener('click', () => zoom(.85));
+    document.getElementById('zoom-out').addEventListener('click', () => zoom(1 / .85));
+    new ResizeObserver(resize).observe(canvas); addCube(); resize();
+  </script>
+</body>
+</html>
